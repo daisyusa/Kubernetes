@@ -1,0 +1,108 @@
+Chapter 6. Minikube - Installing Local Kubernetes Clusters
+
+Minikube is one of the easiest, most flexible and popular methods to run an all-in-one or a multi-node local Kubernetes cluster, isolated by Virtual Machines (VM) or Containers,
+run directly on our workstations. Minikube is the tool responsible for the installation of Kubernetes components, cluster bootstrapping, and cluster tear-down when no longer needed.
+It includes additional features aimed to ease the user interaction with the Kubernetes cluster, but nonetheless, it initializes for us a fully functional, non-production, 
+Kubernetes cluster extremely convenient for learning purposes. Minikube can be installed on native macOS, Windows, and many Linux distributions.
+
+What Is Minikube?
+
+Minikube is one of the easiest, most flexible and popular methods to run an all-in-one or a multi-node local Kubernetes cluster directly on our local workstations. 
+It installs and runs on any native OS such as Linux, macOS, or Windows. However, in order to fully take advantage of all the features Minikube has to offer, 
+a Type-2 Hypervisor or a Container Runtime should be installed on the local workstation, to run in conjunction with Minikube. The role of the hypervisor or 
+container runtime is to offer an isolated infrastructure for the Minikube Kubernetes cluster components, that is easily reproducible, easy to use and tear down.
+
+Minikube can be installed without an isolation software, on bare-metal, which may result in permanent configuration changes to the host OS. 
+To prevent such permanent configuration changes, a second form of isolation can be achieved by installing Minikube inside a Virtual Machine provisioned 
+with a Type-2 Hypervisor of choice, and a desktop guest OS of choice (with enabled GUI). As a result, when installed inside a VM, Minikube will end up making 
+configuration changes to the guest environment, still isolated from the host workstation. Therefore, now we have two distinct methods to isolate the Minikube 
+environment from our host workstation.
+
+For a learning environment the recommendations are that a Kubernetes node has 2 CPU cores (or virtual CPUs) at a minimum, at least 2 GB of RAM memory 
+(with 4 - 8 GB of RAM recommended for optimal usage), and 20+ GB of disk storage space. When migrating towards a larger, more dynamic, 
+production grade cluster, these resource values should be adjusted accordingly. The Kubernetes nodes are expected to access the internet as well, 
+for software updates, container image downloads, and for client accessibility.
+
+Requirements for Running Minikube
+
+VT-x/AMD-v virtualization may need to be enabled on the local workstation for certain hypervisors.
+kubectl
+kubectl command line client (CLI) is a binary used to access and manage any Kubernetes cluster. 
+It is installed through Minikube and accessed through the minikube kubectl command, or it can be installed separately and run as a standalone tool.
+
+Type-2 Hypervisor or Container Runtime
+Without a specified driver, Minikube will try to find an installed hypervisor or a runtime, in the following order of preference (on a Linux host): 
+docker, kvm2, podman, vmware, and virtualbox.
+
+Internet connection on the first Minikube run
+
+In this chapter, we use one of the most robust and stable isolation methods as a driver, the VirtualBox hypervisor, to provision the VM(s) 
+which host the components of the Kubernetes cluster.
+
+Installing Minikube on Linux
+
+Let's learn how to install the latest Minikube release on Ubuntu Linux 22.04 LTS with VirtualBox v7.0 specifically.
+Verify the virtualization support on your Linux OS in a terminal (a non-empty output indicates supported virtualization):
+
+$ grep -E --color 'vmx|svm' /proc/cpuinfo
+
+Below we are presenting the Binary download option, a distribution neutral installation approach:
+
+$ curl -LO https://github.com/kubernetes/minikube/releases/latest/download/minikube-linux-amd64
+
+$ sudo install minikube-linux-amd64 /usr/local/bin/minikube && rm minikube-linux-amd64
+
+$ minikube start --driver=virtualbox
+
+$ minikube status
+
+$ minikube stop
+
+$ minikube delete
+
+Installing Minikube on macOS
+
+use docker, install docker first
+
+For the Intel (x86-64) architecture run the following commands:
+
+$ curl -LO https://github.com/kubernetes/minikube/releases/latest/download/minikube-darwin-amd64
+
+$ sudo install minikube-darwin-amd64 /usr/local/bin/minikube
+
+For the ARM64 architecture run the following commands:
+
+$ curl -LO https://github.com/kubernetes/minikube/releases/latest/download/minikube-darwin-arm64
+
+$ sudo install minikube-darwin-arm64 /usr/local/bin/minikube
+
+$ minikube start --driver=docker
+
+$ minikube status
+
+$ minikube stop
+
+$ minikube delete
+
+Installing Minikube on Windows
+
+Let's learn how to install the latest Minikube release on Windows 10 and 11 with VirtualBox v7.0 specifically.
+Verify the virtualization support on your Windows system (multiple output lines ending with 'Yes' indicate supported virtualization):
+
+PS C:\WINDOWS\system32> systeminfo
+
+Install the VirtualBox hypervisor for 'Windows hosts'. Download and install the .exe package.
+Install Minikube. We can download the latest release or a specific release available from the Minikube release page. Once downloaded,
+we need to make sure it is added to our PATH. There are multiple packages available to download for Windows, found under a Minikube release. However, 
+downloading and installing the minikube-installer.exe will automatically add the executable to the PATH. Let's download and install the latest  minikube-installer.exe package.
+
+PS C:\WINDOWS\system32> minikube start --driver=virtualbox
+
+PS C:\WINDOWS\system32> minikube status
+
+PS C:\WINDOWS\system32> minikube stop
+
+PS C:\WINDOWS\system32> minikube delete
+
+
+
