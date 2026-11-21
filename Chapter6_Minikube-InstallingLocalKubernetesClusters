@@ -104,5 +104,92 @@ PS C:\WINDOWS\system32> minikube stop
 
 PS C:\WINDOWS\system32> minikube delete
 
+Advanced Minikube Features (1)
+
+The minikube start command generates a default minikube cluster with the specifications described above and it will store these specs so that we can restart the default
+cluster whenever desired. The object that stores the specifications of our cluster is called a profile. 
+
+As Minikube matures, so do its features and capabilities. With the introduction of profiles, Minikube allows users to create custom reusable clusters that can all be managed 
+from a single command line client.
+
+The minikube profile command allows us to view the status of all our clusters in a table formatted output. Assuming we have created only the default minikube cluster, 
+we could list the properties that define the default profile with:
+$ minikube profile list
+Below are a few examples of more complex start commands that allow custom clusters to be created with Minikube. They assume that the desired driver software (Docker and/or Podman) has been installed on the host workstation. There is no need to download the desired CNI (network plugin) or the container runtime, they will be set up and enabled by Minikube on our behalf:
+
+$ minikube start --kubernetes-version=v1.27.10 \
+  --driver=podman --profile minipod
+
+$ minikube start --nodes=2 --kubernetes-version=v1.28.1 \
+  --driver=docker --profile doubledocker
+
+$ minikube start --driver=virtualbox --nodes=3 --disk-size=10g \
+  --cpus=2 --memory=6g --kubernetes-version=v1.27.12 --cni=calico \
+  --container-runtime=cri-o -p multivbox
+
+$ minikube start --driver=docker --cpus=6 --memory=8g \
+  --kubernetes-version="1.27.12" -p largedock
+
+$ minikube start --driver=virtualbox -n 3 --container-runtime=containerd \
+  --cni=calico -p minibox
+
+Once multiple cluster profiles are available (the default minikube and custom minibox), the profiles table will look like this:
+
+$ minikube profile list
+
+The target cluster can be set to minibox with the following command:
+
+$ minikube profile minibox
+
+The target cluster can be set to the default minikube with one of the following commands:
+
+$ minikube profile minikube
+
+$ minikube profile default
+$ minikube stop -p minibox
+
+$ minikube start -p minibox
+
+$ minikube stop
+
+$ minikube start
+$ minikube version
+Completion is a helpful post installation configuration to enable the minikube command to respond to typical auto-completion mechanisms, such as completing a command in the terminal by pressing the TAB key. To enable completion for the bash shell on Ubuntu:
+
+$ sudo apt install bash-completion
+
+$ source /etc/bash_completion
+
+$ source <(minikube completion bash)
+
+If needed, also run the following command:
+
+$ minikube completion bash
+A command that allows users to list the nodes of a cluster, add new control plane or worker nodes, delete existing cluster nodes, start or stop individual nodes of a cluster:
+
+$ minikube node list
+
+minikube 192.168.59.100
+
+$ minikube node list -p minibox
+
+minibox   192.168.59.101
+minibox-m02   192.168.59.102
+minibox-m03   192.168.59.103
+
+To display the cluster control plane node's IP address, or another node's IP with the --node or -n flags:
+
+$ minikube ip
+
+192.168.59.100
+
+$ minikube -p minibox ip
+
+192.168.59.101
+
+$ minikube -p minibox ip -n minibox-m02
+$ minikube delete
+$ minikube delete -p minibox
+
 
 
