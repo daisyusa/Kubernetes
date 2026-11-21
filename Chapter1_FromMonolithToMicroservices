@@ -1,8 +1,4 @@
 Chapter 1. From Monolith to Microservices
-● Introduction
-● From Monolith to Microservices
-● Knowledge Check
-● Learning Objectives (Review)
 
 1: Monolithic applications with all components tightly coupled and almost impossible to separate.
 2: A monolith has a rather expensive taste in hardware.
