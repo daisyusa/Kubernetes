@@ -1,0 +1,259 @@
+Chapter 8. Kubernetes Building Blocks
+
+Kubernetes Object Model
+
+Kubernetes became popular due to its advanced application lifecycle management capabilities, implemented through a rich object model, representing different persistent entities 
+in the Kubernetes cluster. Those entities describe:
+
+What containerized applications we are running
+The nodes where the containerized applications are deployed
+Application resource consumption
+Policies attached to applications, like restart/upgrade policies, fault tolerance, ingress/egress, access control, etc.
+With each object, we declare our intent, or the desired state of the object, in the spec section. The Kubernetes system manages the status section for objects, where it records 
+the actual state of the object. At any given point in time, the Kubernetes Control Plane tries to match the object's actual state to the object's desired state. 
+An object definition manifest must include other fields that specify the version of the API we are referencing as the apiVersion, the object type as kind, 
+and additional data helpful to the cluster or users for accounting purposes - the metadata. In certain object definitions, however, we find different sections 
+that replace spec, they are data and stringData. Both data and stringData sections facilitate the declaration of information that should be stored by their respective objects.
+
+Examples of Kubernetes object types are Nodes, Namespaces, Pods, ReplicaSets, Deployments, DaemonSets, etc. We will explore them next.
+
+Based on their predetermined functions, there are two distinct types of nodes - control plane and worker
+The control plane nodes run the control plane agents, such as the API Server, Scheduler, Controller Managers, and etcd in addition to the kubelet and kube-proxy node agents,
+the container runtime, and add-ons for container networking, monitoring, logging, DNS, etc.
+
+Worker nodes run the kubelet and kube-proxy node agents, the container runtime, and add-ons for container networking, monitoring, logging, DNS, etc.
+
+Namespaces
+
+If multiple users and teams use the same Kubernetes cluster we can partition the cluster into virtual sub-clusters using Namespaces. The names of the resources/objects created inside a Namespace are unique, but not across Namespaces in the cluster.
+
+To list all the Namespaces, we can run the following command:
+
+$ kubectl get namespaces
+
+NAME              STATUS       AGE
+default           Active       11h
+kube-node-lease   Active       11h
+kube-public       Active       11h
+kube-system       Active       11h
+
+Generally, Kubernetes creates four Namespaces out of the box: kube-system, kube-public, kube-node-lease, and default. 
+The kube-system Namespace contains the objects created by the Kubernetes system, mostly the control plane agents. 
+The default Namespace contains the objects and resources created by administrators and developers, and objects are assigned to it by default
+unless another Namespace name is provided by the user. kube-public is a special Namespace, which is unsecured and readable by anyone, used for special purposes
+such as exposing public (non-sensitive) information about the cluster. The newest Namespace is kube-node-lease which holds node lease objects used for node heartbeat data.
+Good practice, however, is to create additional Namespaces, as desired, to virtualize the cluster and isolate users, developer teams, applications, or tiers:
+
+$ kubectl create namespace new-namespace-name 
+
+Pods
+
+A Pod is the smallest Kubernetes workload object. It is the unit of deployment in Kubernetes, which represents a single instance of the application. 
+A Pod is a logical collection of one or more containers, enclosing and isolating them to ensure that they:
+
+Are scheduled together on the same host with the Pod.
+Share the same network namespace, meaning that they share a single IP address originally assigned to the Pod.
+Have access to mount the same external storage (volumes) and other common dependencies.
+
+Pods are ephemeral in nature, and they do not have the capability to self-heal themselves. That is the reason they are used with controllers,
+or operators (controllers/operators are used interchangeably), which handle Pods' replication, fault tolerance, self-healing, etc. Examples of 
+controllers are Deployments, ReplicaSets, DaemonSets, Jobs, etc. When an operator is used to manage an application, the Pod's specification is 
+nested in the controller's definition using the Pod Template.
+
+$ kubectl create -f def-pod.yaml
+
+$ kubectl run nginx-pod --image=nginx:1.22.1 --port=80
+
+However, when in need of a starter definition manifest, knowing how to generate one can be a life-saver. The imperative command with additional 
+key flags such as dry-run and the yaml output, can generate the definition template instead of running the Pod, while the template is then stored 
+in the nginx-pod.yaml file. The following is a multi-line command that should be selected in its entirety for copy/paste (including the backslash character "\"):
+
+$ kubectl run nginx-pod --image=nginx:1.22.1 --port=80 \
+--dry-run=client -o yaml > nginx-pod.yaml
+
+$ kubectl apply -f nginx-pod.yaml
+$ kubectl get pods
+$ kubectl get pod nginx-pod -o yaml
+$ kubectl get pod nginx-pod -o json
+$ kubectl describe pod nginx-pod
+$ kubectl delete pod nginx-pod
+
+Labels
+
+Labels are key-value pairs attached to Kubernetes objects such as Pods, ReplicaSets, Nodes, Namespaces, and Persistent Volumes. 
+Labels are used to organize and select a subset of objects, based on the requirements in place
+
+Label Selectors
+
+Equality-Based Selectors
+Equality-Based Selectors allow filtering of objects based on Label keys and values. Matching is achieved using the =, == (equals, used interchangeably), 
+or != (not equals) operators.
+For example, with env==dev or env=dev we are selecting the objects where the env Label key is set to value dev. 
+Set-Based Selectors
+Set-Based Selectors allow filtering of objects based on a set of values. We can use in, notin operators for Label values, and exist/does not exist operators 
+for Label keys. For example, with env in (dev,qa) we are selecting objects where the env Label is set to either dev or qa; with !app we select objects with no Label key app.
+
+ReplicationControllers
+no longer a recommended controller
+the default recommended controller is the Deployment which configures a ReplicaSet controller to manage application Pods' lifecycle.
+
+ReplicaSets
+
+A ReplicaSet is, in part, the next-generation ReplicationController, as it implements the replication and self-healing aspects of the ReplicationController. 
+ReplicaSets support both equality- and set-based Selectors, whereas ReplicationControllers only support equality-based Selectors.
+
+Below is an example of a ReplicaSet object's definition manifest in YAML format. This represents the declarative method to define an object, and can serve as a template for a much more complex ReplicaSet definition manifest if desired:
+
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: frontend
+  labels:
+    app: guestbook
+    tier: frontend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: guestbook
+  template:
+    metadata:
+      labels:
+        app: guestbook
+    spec:
+      containers:
+      - name: php-redis
+        image: gcr.io/google_samples/gb-frontend:v3
+
+The above definition manifest, if stored by a redis-rs.yaml file, is loaded into the cluster to run a set of three identical Pod replicas and their associated container image.
+While create is exemplified below, advanced Kubernetes practitioners may opt to use apply instead:
+
+$ kubectl create -f redis-rs.yaml
+
+Before advancing to more complex application deployment and management methods, become familiar with ReplicaSet operations with additional commands such as:
+
+$ kubectl apply -f redis-rs.yaml
+$ kubectl get replicasets
+$ kubectl get rs
+$ kubectl scale rs frontend --replicas=4
+$ kubectl get rs frontend -o yaml
+$ kubectl get rs frontend -o json
+$ kubectl describe rs frontend
+$ kubectl delete rs frontend
+
+The ReplicaSet detects that the current state is no longer matching the desired state and triggers a request for an additional Pod to be created, 
+thus ensuring that the current state matches the desired state. 
+
+ReplicaSets can be used independently as Pod controllers but they only offer a limited set of features. A set of complementary features are provided by Deployments,
+the recommended controllers for the orchestration of Pods. Deployments manage the creation, deletion, and updates of Pods. A Deployment automatically creates a ReplicaSet, 
+which then creates a Pod. There is no need to manage ReplicaSets and Pods separately, the Deployment will manage them on our behalf.
+
+Deployments
+
+Deployment objects provide declarative updates to Pods and ReplicaSets. The DeploymentController is part of the control plane node's controller manager, 
+and as a controller it also ensures that the current state always matches the desired state of our running containerized application. 
+It allows for seamless application updates and rollbacks, known as the default RollingUpdate strategy, through rollouts and rollbacks, and it directly manages 
+its ReplicaSets for application scaling. It also supports a disruptive, less popular update strategy, known as Recreate. 
+
+$ kubectl create -f def-deploy.yaml
+
+$ kubectl create deployment nginx-deployment \
+--image=nginx:1.20.2 --port=80 --replicas=3
+
+$ kubectl create deployment nginx-deployment \
+--image=nginx:1.20.2 --port=80 --replicas=3 \
+--dry-run=client -o yaml > nginx-deploy.yaml
+
+We can generates a Deployment definition manifest in JSON:
+
+$ kubectl create deployment nginx-deployment \
+--image=nginx:1.20.2 --port=80 --replicas=3 \
+--dry-run=client -o json > nginx-deploy.json
+
+Both the YAML and JSON definition files can serve as templates or can be loaded into the cluster respectively as such:
+
+$ kubectl create -f nginx-deploy.yaml
+$ kubectl create -f nginx-deploy.json
+
+a new Deployment creates ReplicaSet A which then creates 3 Pods, with each Pod Template configured to run one nginx:1.20.2 container image.
+In this case, the ReplicaSet A is associated with nginx:1.20.2 representing a state of the Deployment. This particular state is recorded as Revision 1.
+
+In time, we need to push updates to the application managed by the Deployment object. Let's change the Pods' Template and update the container image 
+from nginx:1.20.2 to nginx:1.21.5. The Deployment triggers a new ReplicaSet B for the new container image versioned 1.21.5 and this association represents
+a new recorded state of the Deployment, Revision 2. The seamless transition between the two ReplicaSets, from ReplicaSet A with three Pods versioned 1.20.2 
+to the new ReplicaSet B with three new Pods versioned 1.21.5, or from Revision 1 to Revision 2, is a Deployment rolling update.
+
+A rolling update is triggered when we update specific properties of the Pod Template for a deployment. While planned changes such as updating the container image,
+container port, volumes, and mounts would trigger a new Revision, other operations that are dynamic in nature, like scaling or labeling the deployment, 
+do not trigger a rolling update, thus do not change the Revision number.
+
+Once the rolling update has completed, the Deployment will show both ReplicaSets A and B, where A is scaled to 0 (zero) Pods, and B is scaled to 3 Pods. 
+This is how the Deployment records its prior state configuration settings, as Revisions. 
+
+Once ReplicaSet B and its 3 Pods versioned 1.21.5 are ready, the Deployment starts actively managing them. However, the Deployment keeps its prior configuration 
+states saved as Revisions which play a key factor in the rollback capability of the Deployment - returning to a prior known configuration state. In our example,
+if the performance of the new nginx:1.21.5 is not satisfactory, the Deployment can be rolled back to a prior Revision, in this case from Revision 2 back to Revision 1
+running nginx:1.20.2 once again.
+
+Before advancing to more complex topics, become familiar with Deployment operations with additional commands such as:
+
+$ kubectl apply -f nginx-deploy.yaml --record
+$ kubectl get deployments
+$ kubectl get deploy -o wide
+$ kubectl scale deploy nginx-deployment --replicas=4
+$ kubectl get deploy nginx-deployment -o yaml
+$ kubectl get deploy nginx-deployment -o json
+$ kubectl describe deploy nginx-deployment
+$ kubectl rollout status deploy nginx-deployment
+$ kubectl rollout history deploy nginx-deployment
+$ kubectl rollout history deploy nginx-deployment --revision=1
+$ kubectl set image deploy nginx-deployment nginx=nginx:1.21.5 --record
+$ kubectl rollout history deploy nginx-deployment --revision=2
+$ kubectl rollout undo deploy nginx-deployment --to-revision=1
+$ kubectl get all -l app=nginx -o wide
+$ kubectl delete deploy nginx-deployment
+$ kubectl get deploy,rs,po -l app=nginx
+
+DaemonSets
+
+DaemonSets are operators designed to manage node agents. They resemble ReplicaSet and Deployment operators when managing multiple Pod replicas and application updates,
+but the DaemonSets present a distinct feature that enforces a single Pod replica to be placed per Node, on all the Nodes or on a select subset of Nodes. In contrast,
+the ReplicaSet and Deployment operators by default have no control over the scheduling and placement of multiple Pod replicas on the same Node.
+
+DaemonSet operators are commonly used in cases when we need to collect monitoring data from all Nodes, or to run storage, networking, or proxy daemons on all Nodes,
+to ensure that we have a specific type of Pod running on all Nodes at all times. 
+
+Whenever a Node is added to the cluster, a Pod from a given DaemonSet is automatically placed on it.
+
+$ kubectl create -f fluentd-ds.yaml
+
+Before advancing to more complex topics, become familiar with DaemonSet operations with additional commands such as:
+
+$ kubectl apply -f fluentd-ds.yaml --record
+$ kubectl get daemonsets
+$ kubectl get ds -o wide
+$ kubectl get ds fluentd-agent -o yaml
+$ kubectl get ds fluentd-agent -o json
+$ kubectl describe ds fluentd-agent
+$ kubectl rollout status ds fluentd-agent
+$ kubectl rollout history ds fluentd-agent
+$ kubectl rollout history ds fluentd-agent --revision=1
+$ kubectl set image ds fluentd-agent fluentd=quay.io/fluentd_elasticsearch/fluentd:v4.6.2 --record
+$ kubectl rollout history ds fluentd-agent --revision=2
+$ kubectl rollout undo ds fluentd-agent --to-revision=1
+$ kubectl get all -l k8s-app=fluentd-agent -o wide
+$ kubectl delete ds fluentd-agent
+$ kubectl get ds,po -l k8s-app=fluentd-agent
+
+Services
+
+This mechanism is called a Service, and it is the recommended method to expose any containerized application to the Kubernetes network.
+
+
+
+
+
+
+
+
+
